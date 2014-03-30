@@ -5,7 +5,7 @@ import sys
 
 class game:
     
-    def __init__(self, title, winSize = (800, 600), calcFps = 60, renderFps = 60, ogl = True, fs = True):
+    def __init__(self, title, winSize = (800, 600), renderFps = 60, ogl = True, fs = True):
         pygame.init()
         self.calcClock = pygame.time.Clock()
         self.renderClock = pygame.time.Clock()
@@ -23,15 +23,9 @@ class game:
         self.startCPos = (0, 0)
         self.startPos = (0, 0)
         self.grabornot = True
-        self.calcFps = calcFps
+        #self.calcFps = calcFps
         self.renderFps = renderFps
         ##pygame.key.set_repeat(1, 1)
-
-    def get_CPos(self):
-        return (self.cx, self.cy)
-
-    def drawGrid(self, gridLen, width):
-        pass
 
     def eventSolve(self):
         self.mousePos = pygame.mouse.get_pos()
@@ -48,9 +42,6 @@ class game:
         pygame.display.flip()
         self.renderClock.tick(self.renderFps)
 
-    def fpsBegin(self):
-        pass
-
-    def calcEnd(self):
-        self.calcClock.tick(self.calcFps)
+    #def calcEnd(self):
+    #    self.calcClock.tick(self.calcFps)
 

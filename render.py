@@ -1,35 +1,48 @@
 # -*- coding: utf-8 -*-
-#基础函数
+
 from OpenGL.GL import *
 from OpenGL.GLU import *
+import random
 import PIL.Image as Image
 
-global textureK
 global textureDic
-textureK = 0
 textureDic = {}
 
 def oglInit(w, h):
     glEnable(GL_BLEND)
-    glEnable(GL_MULTISAMPLE)
+    #glEnable(GL_MULTISAMPLE)
     glEnable(GL_LINE_SMOOTH)
-    glEnable(GL_POLYGON_SMOOTH)
+    #glEnable(GL_POLYGON_SMOOTH)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
-    glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST)
+    #glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST)
     glShadeModel(GL_SMOOTH)
     glViewport(0, 0, w, h)
     glClearColor(0.0, 0.0, 1.0, 1.0)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     #glOrtho(-w, w*2, -h, h*2, -3000, 3000)
-    glOrtho(0, w, 0, h, -3000, 3000)
+    glOrtho(0, w, 0, h, -100, 100)
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
 
+def recordList(image):
+    glNewList(image.listID, GL_COMPILE)
+    glBegin(GL_QUADS)
+    glTexCoord2f(0, 0)
+    glVertex2f(-image.w2, -image.h2)
+    glTexCoord2f(1, 0)
+    glVertex2f(image.w2, -image.h2)
+    glTexCoord2f(1, 1)
+    glVertex2f(image.w2, image.h2)
+    glTexCoord2f(0, 1)
+    glVertex2f(-image.w2, image.h2)
+    glEnd()
+    glEndList()
+    
+
 class imageObj:
     def __init__(self, filename = None, string = None, w = None, h = None):
-        global textureK
         global textureDic
         if filename != None:
             pic = Image.open(filename)
@@ -38,40 +51,53 @@ class imageObj:
         else:
             self.pics = string
             self.oriSize = (w, h)
-        self.textureID = textureK
-        textureDic[filename] = textureK
-        glBindTexture(GL_TEXTURE_2D, textureK)
+        self.textureID = glGenTextures(1)
+        self.listID = glGenLists(1)
+        textureDic[filename] = self.textureID
+        glBindTexture(GL_TEXTURE_2D, self.textureID)
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, self.oriSize[0], self.oriSize[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, self.pics)
-        textureK += 1
         self.w2 = self.oriSize[0] / 2
         self.h2 = self.oriSize[1] / 2
+        recordList(self)
 
     def bindTex(self, mode = GL_REPLACE):
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, mode)
         glBindTexture(GL_TEXTURE_2D, self.textureID)
 
     def drawQuad(self, horN = 1.0, verN = 1.0, horI = 0, verI = 0):
-        w2 = self.w2 / horN
-        h2 = self.h2 / verN
-        tl = horI / horN
-        tr = tl + (1.0 / horN)
-        tb = verI / verN
-        tt = tb + (1.0 / verN)
-        glBegin(GL_QUADS)
-        glTexCoord2f(tl, tb)
-        glVertex2f(-w2, -h2)
-        glTexCoord2f(tr, tb)
-        glVertex2f(w2, -h2)
-        glTexCoord2f(tr, tt)
-        glVertex2f(w2, h2)
-        glTexCoord2f(tl, tt)
-        glVertex2f(-w2, h2)
-        glEnd()
+        if horN == 1.0 and verN == 1.0:
+            glCallList(self.listID)
+        else:
+            w2 = self.w2 / horN
+            h2 = self.h2 / verN
+            tl = horI / horN
+            tr = tl + (1.0 / horN)
+            tb = verI / verN
+            tt = tb + (1.0 / verN)
+            glBegin(GL_QUADS)
+            glTexCoord2f(tl, tb)
+            glVertex2f(-w2, -h2)
+            glTexCoord2f(tr, tb)
+            glVertex2f(w2, -h2)
+            glTexCoord2f(tr, tt)
+            glVertex2f(w2, h2)
+            glTexCoord2f(tl, tt)
+            glVertex2f(-w2, h2)
+            glEnd()
+
+    def blit(self, x, y):
+        glBlitFrameBuffer()
+
+    def zoom(self, x):
+        if (x > 0):
+            self.w2 *= x
+            self.h2 *= x
+        recordList(self)
 
 class baseObj:
     def set_Center(self, x, y, z):
@@ -189,6 +215,22 @@ class animeObj(baseObj):
     
     def get_busy(self):
         return not self.n == self.framen
+
+    def get_framen(self):
+        return self.framen
+
+    def get_at(self):
+        return self.n
+
+def shakeBegin(a = 2):
+    x = random.randint(-a, a)
+    y = random.randint(-a, a)
+    z = random.randint(-a, a)
+    glTranslatef(x, y, z);
+    glPushMatrix()
+
+def shakeEnd():
+    glPopMatrix()
         
 def renderBegin():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
